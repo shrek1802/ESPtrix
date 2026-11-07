@@ -30,64 +30,74 @@ int rssiToY(int rssi, int top, int bottom) {
     return bottom - ((rssi + 110) * (bottom - top)) / 80;
 }
 
+// Dashboard layout tuned for the actual 320x170 T-Embed display.
+// Unlike the original concept artwork, the graph is measured RSSI history,
+// not a demodulated OOK bitstream. Modulation is intentionally not guessed.
 void drawFrame(const char *title, float frequencyMHz, bool tpms) {
     const int w = tftWidth;
     const int h = tftHeight;
-    const int cardWidth = (w - 24) / 2;
     tft.fillScreen(BACKGROUND);
-    tft.fillRect(0, 0, w, 23, PANEL);
-    tft.fillRect(0, 0, 4, 23, ACCENT);
+
+    tft.fillRect(0, 0, w, 25, PANEL);
+    tft.fillRect(0, 0, 3, 25, ACCENT);
     tft.setTextColor(WHITE, PANEL);
-    tft.drawString("ESPTRIX", 10, 4, 2);
-    tft.setTextColor(ACCENT, PANEL);
-    tft.drawRightString(title, w - 9, 6, 1);
-
-    tft.setTextColor(WHITE, BACKGROUND);
-    tft.drawString(String(frequencyMHz, 2) + " MHz", 10, 31, 4);
-    tft.fillRoundRect(w - 98, 30, 90, 26, 6, PANEL);
+    tft.drawString(title, 9, 4, 2);
     tft.setTextColor(GREEN, PANEL);
-    tft.drawString("RX ONLY", w - 88, 35, 2);
-
-    tft.fillRoundRect(8, 64, cardWidth, 45, 6, PANEL);
-    tft.fillRoundRect(16 + cardWidth, 64, cardWidth, 45, 6, PANEL);
-    tft.setTextColor(SUBTLE, PANEL);
-    tft.drawString("SIGNAL STRENGTH", 16, 69, 1);
-    tft.drawString("ACTIVITY PEAKS", 24 + cardWidth, 69, 1);
-
-    tft.fillRoundRect(8, 112, w - 16, 39, 6, PANEL);
-    tft.setTextColor(SUBTLE, PANEL);
-    tft.drawString("RSSI HISTORY  /  NOT PACKET DATA", 15, 114, 1);
-    tft.drawFastHLine(15, 137, w - 30, GRID);
+    tft.drawRightString("RX ONLY", w - 9, 8, 1);
 
     tft.setTextColor(SUBTLE, BACKGROUND);
-    tft.drawString(tpms ? "TPMS: NO SENSOR DECODER YET" : "KEY: ACTIVITY, NOT VALIDATION", 9, h - 15, 1);
-    tft.drawRightString("BACK/OK: EXIT", w - 8, h - 15, 1);
+    tft.drawString("TUNED FREQUENCY", 10, 30, 1);
+    tft.setTextColor(WHITE, BACKGROUND);
+    tft.drawString(String(frequencyMHz, 2) + " MHz", 10, 40, 4);
+
+    tft.drawFastHLine(9, 70, w - 18, GRID);
+    tft.setTextColor(SUBTLE, BACKGROUND);
+    tft.drawString("RSSI", 11, 74, 1);
+    tft.drawString("MODULATION", 116, 74, 1);
+    tft.drawString("BURSTS", 244, 74, 1);
+    tft.drawFastVLine(104, 74, 19, GRID);
+    tft.drawFastVLine(232, 74, 19, GRID);
+
+    // Values are updated independently; labels don't move or flicker.
+    tft.fillRoundRect(8, 98, w - 16, 53, 5, PANEL);
+    tft.setTextColor(SUBTLE, PANEL);
+    tft.drawString("LIVE SIGNAL ACTIVITY", 16, 101, 1);
+    tft.drawRightString("RSSI TREND", w - 16, 101, 1);
+    tft.drawFastHLine(15, 127, w - 30, GRID);
+    tft.drawFastHLine(15, 142, w - 30, GRID);
+
+    tft.setTextColor(SUBTLE, BACKGROUND);
+    tft.drawString(tpms ? "TPMS: ACTIVITY ONLY" : "REMOTE: ACTIVITY ONLY", 9, h - 13, 1);
+    tft.drawRightString("BACK: EXIT", w - 8, h - 13, 1);
 }
 
 void drawReadings(const SignalSnapshot &state, const int history[kHistorySize]) {
     const int w = tftWidth;
-    const int cardWidth = (w - 24) / 2;
-    tft.fillRect(15, 82, cardWidth - 12, 23, PANEL);
-    tft.fillRect(23 + cardWidth, 82, cardWidth - 12, 23, PANEL);
+    // Keep the static headers intact, redrawing only values and plot.
+    tft.fillRect(10, 84, 89, 14, BACKGROUND);
+    tft.fillRect(114, 84, 114, 14, BACKGROUND);
+    tft.fillRect(244, 84, w - 253, 14, BACKGROUND);
 
-    tft.setTextColor(state.active ? GREEN : WHITE, PANEL);
-    tft.drawString(String(state.rssiDbm) + " dBm", 16, 84, 2);
-    tft.setTextColor(WHITE, PANEL);
-    tft.drawString(String(state.peaks), 24 + cardWidth, 84, 2);
+    tft.setTextColor(state.active ? GREEN : WHITE, BACKGROUND);
+    tft.drawString(String(state.rssiDbm) + " dBm", 11, 83, 2);
+    tft.setTextColor(SUBTLE, BACKGROUND);
+    tft.drawString("--", 117, 83, 2);  // not decoded
+    tft.setTextColor(WHITE, BACKGROUND);
+    tft.drawString(String(state.peaks), 245, 83, 2);
 
-    // Redraw only the history region; keep header and cards stationary.
-    tft.fillRect(15, 125, w - 30, 23, PANEL);
-    tft.drawFastHLine(15, 137, w - 30, GRID);
+    tft.fillRect(15, 113, w - 30, 35, PANEL);
+    tft.drawFastHLine(15, 127, w - 30, GRID);
+    tft.drawFastHLine(15, 142, w - 30, GRID);
     for (unsigned i = 1; i < kHistorySize; ++i) {
         const int x0 = 16 + ((w - 34) * (i - 1)) / (kHistorySize - 1);
         const int x1 = 16 + ((w - 34) * i) / (kHistorySize - 1);
-        tft.drawLine(
-            x0, rssiToY(history[i - 1], 126, 146),
-            x1, rssiToY(history[i], 126, 146), ACCENT
-        );
+        tft.drawLine(x0, rssiToY(history[i - 1], 115, 145),
+                     x1, rssiToY(history[i], 115, 145), ACCENT);
     }
-    tft.setTextColor(state.calibrated ? SUBTLE : ACCENT, PANEL);
-    tft.drawRightString(state.calibrated ? "LIVE" : "CAL", w - 17, 114, 1);
+    tft.setTextColor(state.active ? GREEN : SUBTLE, PANEL);
+    tft.drawRightString(state.calibrated
+        ? (state.active ? "SIGNAL" : "LISTENING") : "CALIBRATING",
+        w - 17, 101, 1);
 }
 
 void showMonitor(const char *title, float frequencyMHz, bool tpms) {
