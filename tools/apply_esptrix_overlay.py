@@ -45,13 +45,15 @@ if home_include not in text:
     if anchor not in text:
         raise SystemExit("Bruce main_menu.cpp changed: missing include")
     text = text.replace(anchor, anchor + home_include, 1)
-home_entry = '''#if defined(T_EMBED_1101)
+home_entry = '''    // ESPTRIX is opt-in during early hardware validation. Retain Bruce's
+    // verified default first item and icon renderer at initial startup.
+#if defined(T_EMBED_1101)
     options.push_back({"ESPTRIX HOME", []() { esptrix::showHome(); }});
 #endif
 '''
 if home_entry not in text:
-    anchor = '    for (int i = 0; i < _totalItems; i++) {'
+    anchor = '    _currentIndex = loopOptions(options, MENU_TYPE_MAIN, "Main Menu", _currentIndex);'
     if anchor not in text:
-        raise SystemExit("Bruce main_menu.cpp changed: missing menu anchor")
+        raise SystemExit("Bruce main_menu.cpp changed: missing menu entry point")
     text = text.replace(anchor, home_entry + anchor, 1)
 main_menu.write_text(text, encoding="utf-8")

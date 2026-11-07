@@ -41,9 +41,6 @@ void MainMenu::begin(void) {
     options = {};
 
     std::vector<String> l = bruceConfig.disabledMenus;
-#if defined(T_EMBED_1101)
-    options.push_back({"ESPTRIX HOME", []() { esptrix::showHome(); }});
-#endif
     for (int i = 0; i < _totalItems; i++) {
         String itemName = _menuItems[i]->getName();
         if (find(l.begin(), l.end(), itemName) == l.end()) { // If menu item is not disabled
@@ -70,6 +67,11 @@ void MainMenu::begin(void) {
             );
         }
     }
+    // ESPTRIX is opt-in during early hardware validation. Retain Bruce's
+    // verified default first item and icon renderer at initial startup.
+#if defined(T_EMBED_1101)
+    options.push_back({"ESPTRIX HOME", []() { esptrix::showHome(); }});
+#endif
     _currentIndex = loopOptions(options, MENU_TYPE_MAIN, "Main Menu", _currentIndex);
 };
 
