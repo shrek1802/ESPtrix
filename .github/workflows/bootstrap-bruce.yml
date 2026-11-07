@@ -1,0 +1,70 @@
+name: One-time bootstrap from Bruce 1.16.1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bootstrap-bruce.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import-upstream:
+    if: github.repository == 'shrek1802/ESPtrix'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Import tagged upstream, preserve attribution and integrate ESPTRIX
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test -f platformio.ini; then
+            echo "Upstream already imported; no changes made."
+            exit 0
+          fi
+          temp_dir="$(mktemp -d)"
+          trap 'rm -rf "$temp_dir"' EXIT
+          git clone --depth 1 --branch 1.16.1 https://github.com/BruceDevices/firmware.git "$temp_dir/bruce"
+          upstream_sha="$(git -C "$temp_dir/bruce" rev-parse HEAD)"
+          echo "Upstream Bruce source commit: $upstream_sha"
+
+          # Exclude project-owned material, README, and upstream CI workflows.
+          # Import source files, original LICENSE and THIRD_PARTY.md unchanged.
+          rsync -a \
+            --exclude='.git/' \
+            --exclude='README.md' \
+            --exclude='docs/' \
+            --exclude='esptrix/' \
+            --exclude='.github/workflows/' \
+            "$temp_dir/bruce/" ./
+
+          test -f LICENSE
+          test -f THIRD_PARTY.md
+          test -f platformio.ini
+          python3 tools/apply_esptrix_overlay.py
+
+          cat > docs/UPSTREAM_BASELINE.md <<EOF
+          # Imported source baseline
+
+          - Original project: [Bruce Firmware](https://github.com/BruceDevices/firmware)
+          - Release tag: [1.16.1](https://github.com/BruceDevices/firmware/releases/tag/1.16.1)
+          - Upstream commit: \`$upstream_sha\`
+          - Source licence: AGPL-3.0-or-later (see [../LICENSE](../LICENSE))
+          - Additional notices: [../THIRD_PARTY.md](../THIRD_PARTY.md)
+          - Import method: tagged source snapshot plus ESPTRIX integration overlay.
+
+          ESPTRIX is an independent derivative, not an official BruceDevices project.
+          EOF
+
+          git config user.name "ESPtrix Bootstrap"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: import Bruce 1.16.1 source and integrate initial ESPTRIX RF Lab"
+          git push origin HEAD:main
+          git push origin HEAD:refs/heads/development
+          echo "Bruce base imported into main and development branch created."
