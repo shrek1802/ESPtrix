@@ -8,6 +8,11 @@ on:
 permissions:
   contents: read
 
+# Rebuild only the newest development commit, avoiding duplicate long PlatformIO jobs.
+concurrency:
+  group: esptrix-build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
