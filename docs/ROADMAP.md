@@ -5,13 +5,13 @@
 ## M0 — Bootstrap
 
 - [x] Establish ESPTRIX project identity, Bruce 1.16.1 provenance and AGPL notice
-- [ ] Import the exact upstream tag into `main`
-- [ ] Create `development` from the imported baseline
+- [x] Import the exact upstream tag into `main`
+- [x] Create `development` from the imported baseline
 - [ ] Confirm clean PlatformIO build and firmware image size
 
 ## M1 — RF Lab first screen
 
-- [ ] Add **ESPtrix RF Lab** to the Bruce RF menu, without removing Bruce tools
+- [x] Add **ESPtrix RF Lab** to the Bruce RF menu, without removing Bruce tools
 - [ ] Add polished dark/blue layout at 320 × 170
 - [ ] Key Tester: receiver-only RSSI and approximate activity-peaks monitor at selectable 315/433/868 MHz
 - [ ] TPMS Monitor: honest receiver-only initial monitor at 315/433 MHz
