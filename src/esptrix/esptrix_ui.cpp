@@ -62,7 +62,6 @@ void drawFrame(const char *title, float frequencyMHz, bool tpms) {
     tft.fillRoundRect(8, 98, w - 16, 53, 5, PANEL);
     tft.setTextColor(SUBTLE, PANEL);
     tft.drawString("LIVE SIGNAL ACTIVITY", 16, 101, 1);
-    tft.drawRightString("RSSI TREND", w - 16, 101, 1);
     tft.drawFastHLine(15, 127, w - 30, GRID);
     tft.drawFastHLine(15, 142, w - 30, GRID);
 
@@ -94,6 +93,7 @@ void drawReadings(const SignalSnapshot &state, const int history[kHistorySize]) 
         tft.drawLine(x0, rssiToY(history[i - 1], 115, 145),
                      x1, rssiToY(history[i], 115, 145), ACCENT);
     }
+    tft.fillRect(w - 99, 100, 84, 12, PANEL);
     tft.setTextColor(state.active ? GREEN : SUBTLE, PANEL);
     tft.drawRightString(state.calibrated
         ? (state.active ? "SIGNAL" : "LISTENING") : "CALIBRATING",
