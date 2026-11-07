@@ -1,0 +1,46 @@
+name: Import Bruce 1.16.1 baseline
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/import-bruce-baseline.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout ESPTRIX
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Import exact upstream tag without replacing ESPTRIX documentation
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f platformio.ini ]]; then
+            echo "Upstream source already present; refusing to overwrite."
+            exit 0
+          fi
+          git clone --depth 1 --branch 1.16.1 https://github.com/BruceDevices/firmware.git /tmp/bruce-upstream
+          BASE_SHA="$(git -C /tmp/bruce-upstream rev-parse HEAD)"
+          rsync -a /tmp/bruce-upstream/ ./ \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='README.md' \
+            --exclude='LICENSE'
+          cp /tmp/bruce-upstream/README.md docs/BRUCE_ORIGINAL_README.md
+          cp /tmp/bruce-upstream/LICENSE LICENSE
+          printf '# Bruce upstream baseline\n\nImported from https://github.com/BruceDevices/firmware at tag `1.16.1`.\n\nCommit SHA: `%s`\n\nImported by ESPTRIX baseline workflow. The source and upstream third-party notices are retained. This is a source import, not a native GitHub fork with inherited history.\n' "$BASE_SHA" > docs/UPSTREAM_BASELINE.md
+          test -f platformio.ini
+          test -f THIRD_PARTY.md
+          test -f LICENSE
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: import Bruce Firmware 1.16.1 baseline"
+          git push origin HEAD:main
+          git push origin HEAD:development
