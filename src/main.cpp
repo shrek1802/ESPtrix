@@ -450,9 +450,11 @@ void setup() {
         SAFE_STACK_BUFFER_SIZE / 4
     ); // Must be invoked before Serial.begin(). Default is 256 chars
     Serial.begin(115200);
+    Serial.println("[ESPTRIX BOOT] stage=serial_ready baseline=Bruce-1.16.1");
 
     log_d("Total heap: %d", ESP.getHeapSize());
     log_d("Free heap: %d", ESP.getFreeHeap());
+    Serial.println("[ESPTRIX BOOT] stage=psram_init");
     bool psramStarted = psramInit();
     // Printed unconditionally (boards force CORE_DEBUG_LEVEL=1, so log_d is invisible).
     // If PSRAM fails to init, a PSRAM board effectively becomes a no-PSRAM board and
@@ -477,9 +479,13 @@ void setup() {
     BLEConnected = false;
     bruceConfig.bright = 100; // theres is no value yet
     bruceConfigPins.rotation = ROTATION;
+    Serial.println("[ESPTRIX BOOT] stage=setup_gpio");
     setup_gpio();
+    Serial.println("[ESPTRIX BOOT] stage=setup_gpio_ok");
 #if defined(HAS_SCREEN)
+    Serial.println("[ESPTRIX BOOT] stage=tft_init");
     tft.init();
+    Serial.println("[ESPTRIX BOOT] stage=tft_init_ok");
     tft.setRotation(bruceConfigPins.rotation);
     tft.fillScreen(TFT_BLACK);
     // bruceConfig is not read yet.. just to show something on screen due to long boot time
@@ -490,9 +496,13 @@ void setup() {
     tft.begin();
 #endif
     _pre_storage_gpio();
+    Serial.println("[ESPTRIX BOOT] stage=begin_storage");
     begin_storage();
+    Serial.println("[ESPTRIX BOOT] stage=begin_storage_ok");
     RAM_LOG("after-storage"); // bruceConfig/bruceConfigPins loaded from FS
+    Serial.println("[ESPTRIX BOOT] stage=begin_tft");
     begin_tft();
+    Serial.println("[ESPTRIX BOOT] stage=begin_tft_ok");
     init_clock();
     init_led();
     RAM_LOG("after-tft-clock-led");
@@ -572,6 +582,7 @@ void setup() {
         bruceConfig.setStartupApp("");
     }
 
+    Serial.println("[ESPTRIX BOOT] stage=setup_complete");
     RAM_LOG("setup-end");
 }
 
@@ -606,6 +617,8 @@ void loop() {
     }
 #endif
 
+    static bool shown = false;
+    if (!shown) { Serial.println("[ESPTRIX BOOT] stage=enter_main_menu"); shown = true; }
     mainMenu.begin();
     delay(1);
 }
