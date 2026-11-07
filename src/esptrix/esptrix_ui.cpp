@@ -124,6 +124,14 @@ void showMonitor(const char *title, float frequencyMHz, bool tpms) {
 }
 }  // namespace
 
+void keyFobMonitor(float frequencyMHz) {
+    showMonitor("KEY FOB TESTER", frequencyMHz, false);
+}
+
+void tpmsMonitor(float frequencyMHz) {
+    showMonitor("TPMS MONITOR", frequencyMHz, true);
+}
+
 void keyFobMenu() {
     std::vector<Option> options = {
         {"433.92 MHz", []() { showMonitor("KEY FOB TESTER", 433.92f, false); }},

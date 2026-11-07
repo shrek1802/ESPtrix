@@ -1,26 +1,30 @@
-# ESPTRIX launcher — T-Embed CC1101
+# ESPTRIX Interface — Flipper-style carousel (development)
 
-Development milestone: ESPTRIX is now the default **main menu** on the T-Embed CC1101, while all of Bruce's original tools remain reachable.
+ESPTRIX is an independent AGPL-licensed derivative of Bruce Firmware.
 
-## Boot and recovery
+## Main screen (320×170 T-Embed CC1101)
 
-- On normal startup, after the existing Bruce boot animation, the ESPTRIX navy/electric-blue two-page launcher appears.
-- **Hold the physical BACK button when the device finishes booting and opens the main menu** to start with the original Bruce interface. Release it once the Bruce menu appears.
-- In ESPTRIX HOME, press BACK or select the **BRUCE** tile (page two) to switch to the original Bruce interface for the remainder of the session.
-- In Bruce's carousel menu, open **ESPTRIX HOME** (last menu item) to switch back.
-- Changing the menu is a runtime-only choice. On reboot it defaults back to ESPTRIX unless BACK is held at startup.
+ESPTRIX now starts on a **horizontal icon carousel**, not 3×2 square tiles. Three original vector icons are visible, with the selected icon highlighted by a blue ring. The selected feature's name and description appear beneath it.
 
-## Navigation
+The device keeps a simple electric-blue, navy, white colour palette; original Bruce tools remain accessible.
 
-- Rotate the encoder: move between tiles.
-- Press the encoder: open a tool.
-- BACK: switch to the original Bruce UI.
+- Rotate encoder: previous/next icon.
+- Press encoder: open a vertical, scrollable list for that category.
+- Rotate: move down/up a list; press to launch selected item.
+- Back: return to carousel; Back from carousel enters Bruce mode.
+- Select BRUCE icon: enter Bruce's original carousel. Bruce has ESPTRIX HOME to switch back.
+- Hold physical Back during the startup menu transition: boot directly to Bruce.
 
-Page 1: Key Fob, TPMS, RF Tools, Wi-Fi, BLE, NFC/RFID.
-Page 2: Infrared, Files, More, Settings, Bruce, About.
+## Categories
 
-RF diagnostic screens remain **receive-only** and currently show RSSI signal trends, not real key code or TPMS packet decoding.
+KEY FOB, TPMS, RF TOOLS, WI-FI, BLUETOOTH, NFC/RFID, INFRARED, FILES, MORE, SETTINGS, BRUCE, ABOUT.
 
-## Testing status
+Key Fob and TPMS use **native ESPTRIX frequency-selection list menus** and real receive-only RSSI tools. Other categories initially show a native entry that opens the inherited Bruce tools; migrating each submenu to the new list renderer is future work.
 
-The first ESPTRIX build (#20) showed a blank screen on physical hardware. Build #22 booted successfully, displaying the original Bruce UI, which is why the native launcher became the next milestone. This default-launcher change requires a **fresh firmware build and hardware validation**. If the home screen misbehaves, use BACK to enter Bruce or reflash the known-working Bruce firmware.
+Submenu rows are 38 pixels tall: top-level heading uses TFT font 2 and details use TFT font 1. Three rows fit at once and long lists scroll without tile clutter.
+
+**Important:** the RF activity graph is RSSI history, not a demodulated pulse waveform. TPMS payload decoding and fob modulation identification are not yet implemented.
+
+## Status
+
+Source implemented on `development`. Hardware validation remains necessary; earlier 3×2 grid has been replaced. Build success alone is not a hardware UI test.
