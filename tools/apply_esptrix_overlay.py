@@ -15,7 +15,7 @@ if not upstream_menu.is_file():
 
 target = root / "src/esptrix"
 target.mkdir(parents=True, exist_ok=True)
-for name in ("esptrix_ui.h", "esptrix_ui.cpp", "esptrix_signal_meter.h"):
+for name in ("esptrix_ui.h", "esptrix_ui.cpp", "esptrix_signal_meter.h", "esptrix_home.h", "esptrix_home.cpp"):
     shutil.copy2(overlay_src / name, target / name)
 
 source = upstream_menu.read_text(encoding="utf-8")
@@ -35,3 +35,23 @@ if entry not in source:
 
 upstream_menu.write_text(source, encoding="utf-8")
 print("ESPtrix RF Lab integrated into Bruce RF menu (receive-only milestone).")
+
+# ESPTRIX native launcher remains a one-entry opt-in menu for T-Embed CC1101.
+main_menu = root / "src/core/main_menu.cpp"
+text = main_menu.read_text(encoding="utf-8")
+home_include = '#include "esptrix/esptrix_home.h"\\n'.replace("\\n", "\n")
+if home_include not in text:
+    anchor = '#include "main_menu.h"\\n'.replace("\\n", "\n")
+    if anchor not in text:
+        raise SystemExit("Bruce main_menu.cpp changed: missing include")
+    text = text.replace(anchor, anchor + home_include, 1)
+home_entry = '''#if defined(T_EMBED_1101)
+    options.push_back({"ESPTRIX HOME", []() { esptrix::showHome(); }});
+#endif
+'''
+if home_entry not in text:
+    anchor = '    for (int i = 0; i < _totalItems; i++) {'
+    if anchor not in text:
+        raise SystemExit("Bruce main_menu.cpp changed: missing menu anchor")
+    text = text.replace(anchor, home_entry + anchor, 1)
+main_menu.write_text(text, encoding="utf-8")

@@ -1,4 +1,5 @@
 #include "main_menu.h"
+#include "esptrix/esptrix_home.h"
 #include "display.h"
 #include "utils.h"
 #include <globals.h>
@@ -40,6 +41,9 @@ void MainMenu::begin(void) {
     options = {};
 
     std::vector<String> l = bruceConfig.disabledMenus;
+#if defined(T_EMBED_1101)
+    options.push_back({"ESPTRIX HOME", []() { esptrix::showHome(); }});
+#endif
     for (int i = 0; i < _totalItems; i++) {
         String itemName = _menuItems[i]->getName();
         if (find(l.begin(), l.end(), itemName) == l.end()) { // If menu item is not disabled

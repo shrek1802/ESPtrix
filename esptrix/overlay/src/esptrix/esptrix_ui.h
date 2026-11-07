@@ -5,4 +5,6 @@
 
 namespace esptrix {
 void rfLabMenu();
+void keyFobMenu();
+void tpmsMenu();
 }

@@ -124,6 +124,23 @@ void showMonitor(const char *title, float frequencyMHz, bool tpms) {
 }
 }  // namespace
 
+void keyFobMenu() {
+    std::vector<Option> options = {
+        {"433.92 MHz", []() { showMonitor("KEY FOB TESTER", 433.92f, false); }},
+        {"315.00 MHz", []() { showMonitor("KEY FOB TESTER", 315.00f, false); }},
+        {"868.35 MHz", []() { showMonitor("KEY FOB TESTER", 868.35f, false); }},
+    };
+    loopOptions(options, MENU_TYPE_SUBMENU, "Key Fob Tester");
+}
+
+void tpmsMenu() {
+    std::vector<Option> options = {
+        {"433.92 MHz", []() { showMonitor("TPMS MONITOR", 433.92f, true); }},
+        {"315.00 MHz", []() { showMonitor("TPMS MONITOR", 315.00f, true); }},
+    };
+    loopOptions(options, MENU_TYPE_SUBMENU, "TPMS Monitor");
+}
+
 void rfLabMenu() {
     std::vector<Option> items = {
         {"Key Fob Tester | 433.92 MHz", []() { showMonitor("KEY FOB TESTER", 433.92f, false); }},
