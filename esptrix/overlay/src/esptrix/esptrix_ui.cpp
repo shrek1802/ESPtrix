@@ -1,107 +1,137 @@
-// ESPTRIX RF Lab - receive-only diagnostic UI.
-// ESPTRIX is derived from Bruce Firmware: https://github.com/BruceDevices/firmware
-// Copyright (C) 2026 ESPTRIX contributors.
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// ESPTRIX RF Lab - polished, receive-only radio diagnostics.
+// Original firmware: BruceDevices/firmware (Bruce 1.16.1).
+// ESPTRIX modifications: 2026-11-07; SPDX-License-Identifier: AGPL-3.0-or-later
 
 #include "esptrix_ui.h"
+#include "esptrix_signal_meter.h"
 #include "core/display.h"
 #include "modules/rf/rf_utils.h"
-#include <globals.h>
 #include <ELECHOUSE_CC1101_SRC_DRV.h>
-#include <algorithm>
+#include <globals.h>
 #include <vector>
 
 namespace esptrix {
 namespace {
-constexpr uint16_t BACKGROUND = 0x0862; // deep blue-black
-constexpr uint16_t PANEL      = 0x1905;
-constexpr uint16_t ACCENT     = 0x45FF; // electric blue
-constexpr uint16_t WHITE      = 0xFFFF;
-constexpr uint16_t SUBTLE     = 0xA5B4;
-constexpr uint16_t GREEN      = 0x3F52;
+constexpr uint16_t BACKGROUND = 0x0862;  // near-black midnight blue
+constexpr uint16_t PANEL = 0x1905;       // card blue-grey
+constexpr uint16_t ACCENT = 0x45FF;      // electric blue
+constexpr uint16_t WHITE = 0xFFFF;
+constexpr uint16_t SUBTLE = 0xA5B4;
+constexpr uint16_t GREEN = 0x3F52;
+constexpr uint16_t GRID = 0x3187;
+constexpr unsigned kHistorySize = 48;
+constexpr uint32_t kRefreshMs = 120;
 
-// A first milestone only: CC1101 RSSI sampling, not packet decoding.
-// A high RSSI means radio activity; it does NOT prove a valid key or TPMS frame.
-void drawFrame(const char *name, float frequencyMHz, bool tpms) {
-    const int w = tftWidth, h = tftHeight;
-    tft.fillScreen(BACKGROUND);
-    tft.fillRect(0, 0, w, 24, PANEL);
-    tft.fillRect(0, 0, 4, 24, ACCENT);
-    tft.setTextSize(1);
-    tft.setTextColor(WHITE, PANEL);
-    tft.drawString("ESPTRIX", 9, 5, 2);
-    tft.setTextColor(ACCENT, PANEL);
-    tft.drawRightString(name, w - 8, 6, 1);
-
-    tft.setTextColor(SUBTLE, BACKGROUND);
-    tft.drawString("LISTENING  |  RX ONLY", 9, 31, 1);
-    tft.setTextColor(WHITE, BACKGROUND);
-    tft.drawString(String(frequencyMHz, 2) + " MHz", 9, 47, 4);
-
-    tft.fillRoundRect(8, 80, (w - 24) / 2, 46, 6, PANEL);
-    tft.fillRoundRect(16 + (w - 24) / 2, 80, (w - 24) / 2, 46, 6, PANEL);
-    tft.setTextColor(SUBTLE, PANEL);
-    tft.drawString("RSSI", 16, 85, 1);
-    tft.drawString("ACTIVITY PEAKS", 24 + (w - 24) / 2, 85, 1);
-
-    tft.setTextColor(SUBTLE, BACKGROUND);
-    tft.drawString(tpms ? "TPMS: Decoder not yet implemented" : "Activity only - not a key decode",
-                   9, h - 36, 1);
-    tft.drawString("Press BACK / SELECT to exit", 9, h - 21, 1);
+// A signal-strength trend is NOT a demodulated pulse waveform.
+// Packets, key correctness and TPMS fields cannot be inferred from RSSI alone.
+int rssiToY(int rssi, int top, int bottom) {
+    if (rssi < -110) rssi = -110;
+    if (rssi > -30) rssi = -30;
+    return bottom - ((rssi + 110) * (bottom - top)) / 80;
 }
 
-void showMonitor(const char *name, float frequencyMHz, bool tpms) {
+void drawFrame(const char *title, float frequencyMHz, bool tpms) {
+    const int w = tftWidth;
+    const int h = tftHeight;
+    const int cardWidth = (w - 24) / 2;
+    tft.fillScreen(BACKGROUND);
+    tft.fillRect(0, 0, w, 23, PANEL);
+    tft.fillRect(0, 0, 4, 23, ACCENT);
+    tft.setTextColor(WHITE, PANEL);
+    tft.drawString("ESPTRIX", 10, 4, 2);
+    tft.setTextColor(ACCENT, PANEL);
+    tft.drawRightString(title, w - 9, 6, 1);
+
+    tft.setTextColor(WHITE, BACKGROUND);
+    tft.drawString(String(frequencyMHz, 2) + " MHz", 10, 31, 4);
+    tft.fillRoundRect(w - 98, 30, 90, 26, 6, PANEL);
+    tft.setTextColor(GREEN, PANEL);
+    tft.drawString("RX ONLY", w - 88, 35, 2);
+
+    tft.fillRoundRect(8, 64, cardWidth, 45, 6, PANEL);
+    tft.fillRoundRect(16 + cardWidth, 64, cardWidth, 45, 6, PANEL);
+    tft.setTextColor(SUBTLE, PANEL);
+    tft.drawString("SIGNAL STRENGTH", 16, 69, 1);
+    tft.drawString("ACTIVITY PEAKS", 24 + cardWidth, 69, 1);
+
+    tft.fillRoundRect(8, 112, w - 16, 39, 6, PANEL);
+    tft.setTextColor(SUBTLE, PANEL);
+    tft.drawString("RSSI HISTORY  /  NOT PACKET DATA", 15, 114, 1);
+    tft.drawFastHLine(15, 137, w - 30, GRID);
+
+    tft.setTextColor(SUBTLE, BACKGROUND);
+    tft.drawString(tpms ? "TPMS: NO SENSOR DECODER YET" : "KEY: ACTIVITY, NOT VALIDATION", 9, h - 15, 1);
+    tft.drawRightString("BACK/OK: EXIT", w - 8, h - 15, 1);
+}
+
+void drawReadings(const SignalSnapshot &state, const int history[kHistorySize]) {
+    const int w = tftWidth;
+    const int cardWidth = (w - 24) / 2;
+    tft.fillRect(15, 82, cardWidth - 12, 23, PANEL);
+    tft.fillRect(23 + cardWidth, 82, cardWidth - 12, 23, PANEL);
+
+    tft.setTextColor(state.active ? GREEN : WHITE, PANEL);
+    tft.drawString(String(state.rssiDbm) + " dBm", 16, 84, 2);
+    tft.setTextColor(WHITE, PANEL);
+    tft.drawString(String(state.peaks), 24 + cardWidth, 84, 2);
+
+    // Redraw only the history region; keep header and cards stationary.
+    tft.fillRect(15, 125, w - 30, 23, PANEL);
+    tft.drawFastHLine(15, 137, w - 30, GRID);
+    for (unsigned i = 1; i < kHistorySize; ++i) {
+        const int x0 = 16 + ((w - 34) * (i - 1)) / (kHistorySize - 1);
+        const int x1 = 16 + ((w - 34) * i) / (kHistorySize - 1);
+        tft.drawLine(
+            x0, rssiToY(history[i - 1], 126, 146),
+            x1, rssiToY(history[i], 126, 146), ACCENT
+        );
+    }
+    tft.setTextColor(state.calibrated ? SUBTLE : ACCENT, PANEL);
+    tft.drawRightString(state.calibrated ? "LIVE" : "CAL", w - 17, 114, 1);
+}
+
+void showMonitor(const char *title, float frequencyMHz, bool tpms) {
     if (bruceConfigPins.rfModule != CC1101_SPI_MODULE) {
-        displayError("ESPtrix RF Lab requires CC1101", true);
+        displayError("ESPTRIX RF Lab requires CC1101", true);
         return;
     }
+
     if (!initRfModule("rx", frequencyMHz)) {
         displayError("Unable to start CC1101 receiver", true);
         return;
     }
-    // All screens in this module are passive - never transmit.
-    drawFrame(name, frequencyMHz, tpms);
 
-    int activityPeaks = 0;
-    bool wasHigh = false;
-    int lastRssi = -110;
-    uint32_t lastDraw = 0;
+    drawFrame(title, frequencyMHz, tpms);
+    SignalMeter meter;
+    int history[kHistorySize];
+    for (unsigned i = 0; i < kHistorySize; ++i) history[i] = -110;
+    uint32_t lastDraw = millis() - kRefreshMs;
 
+    // This monitor never calls SetTx, RF send, or any replay path.
     while (true) {
         if (check(EscPress) || check(SelPress)) break;
-        lastRssi = ELECHOUSE_cc1101.getRssi();
-        // Fixed provisional threshold; calibration and sensitivity settings
-        // will be added after hardware validation.
-        const bool isHigh = (lastRssi >= -68);
-        if (isHigh && !wasHigh) ++activityPeaks;
-        wasHigh = isHigh;
-
-        if (millis() - lastDraw >= 90) {
-            const int w = tftWidth;
-            const int cell = (w - 24) / 2;
-            tft.fillRect(16, 101, cell - 12, 20, PANEL);
-            tft.fillRect(24 + cell, 101, cell - 12, 20, PANEL);
-            tft.setTextColor(isHigh ? GREEN : WHITE, PANEL);
-            tft.drawString(String(lastRssi) + " dBm", 16, 102, 2);
-            tft.setTextColor(WHITE, PANEL);
-            tft.drawString(String(activityPeaks), 24 + cell, 102, 2);
-            lastDraw = millis();
+        const uint32_t now = millis();
+        const SignalSnapshot state = meter.sample(ELECHOUSE_cc1101.getRssi(), now);
+        if (static_cast<uint32_t>(now - lastDraw) >= kRefreshMs) {
+            for (unsigned i = 1; i < kHistorySize; ++i) history[i - 1] = history[i];
+            history[kHistorySize - 1] = state.rssiDbm;
+            drawReadings(state, history);
+            lastDraw = now;
         }
         delay(20);
     }
     deinitRfModule();
 }
-
-} // namespace
+}  // namespace
 
 void rfLabMenu() {
     std::vector<Option> items = {
-        {"Key Tester | 433.92 MHz", []() { showMonitor("KEY FOB TESTER", 433.92f, false); }},
-        {"Key Tester | 315.00 MHz", []() { showMonitor("KEY FOB TESTER", 315.00f, false); }},
-        {"Key Tester | 868.35 MHz", []() { showMonitor("KEY FOB TESTER", 868.35f, false); }},
+        {"Key Fob Tester | 433.92 MHz", []() { showMonitor("KEY FOB TESTER", 433.92f, false); }},
+        {"Key Fob Tester | 315 MHz", []() { showMonitor("KEY FOB TESTER", 315.00f, false); }},
+        {"Key Fob Tester | 868.35 MHz", []() { showMonitor("KEY FOB TESTER", 868.35f, false); }},
         {"TPMS Monitor | 433.92 MHz", []() { showMonitor("TPMS MONITOR", 433.92f, true); }},
-        {"TPMS Monitor | 315.00 MHz", []() { showMonitor("TPMS MONITOR", 315.00f, true); }},
+        {"TPMS Monitor | 315 MHz", []() { showMonitor("TPMS MONITOR", 315.00f, true); }},
     };
     loopOptions(items, MENU_TYPE_SUBMENU, "ESPtrix RF Lab");
 }
-} // namespace esptrix
+}  // namespace esptrix
