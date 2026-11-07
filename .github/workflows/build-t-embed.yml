@@ -1,0 +1,31 @@
+name: Build ESPTRIX (LILYGO T-Embed CC1101)
+
+on:
+  push:
+    branches: [development]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install PlatformIO
+        run: python -m pip install --upgrade platformio
+      - name: Build firmware for LILYGO T-Embed CC1101
+        run: pio run -e lilygo-t-embed-cc1101
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: ESPTRIX-t-embed-cc1101-development
+          path: .pio/build/lilygo-t-embed-cc1101/*.bin
+          if-no-files-found: error
+          retention-days: 14
