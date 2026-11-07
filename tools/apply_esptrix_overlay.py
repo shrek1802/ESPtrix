@@ -15,7 +15,7 @@ if not upstream_menu.is_file():
 
 target = root / "src/esptrix"
 target.mkdir(parents=True, exist_ok=True)
-for name in ("esptrix_ui.h", "esptrix_ui.cpp"):
+for name in ("esptrix_ui.h", "esptrix_ui.cpp", "esptrix_signal_meter.h"):
     shutil.copy2(overlay_src / name, target / name)
 
 source = upstream_menu.read_text(encoding="utf-8")
