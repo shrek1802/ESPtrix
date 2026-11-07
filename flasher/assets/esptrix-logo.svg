@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 690 174" role="img" aria-label="ESPTRIX logo">
+  <rect width="690" height="174" rx="22" fill="#0B1424"/>
+  <g fill="none" stroke="#38BDF8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="31" y="39" width="96" height="96" rx="15" fill="#122740"/>
+    <path d="M52 80H78L87 64H107M52 98H76L88 115H107"/>
+    <circle cx="106" cy="64" r="4" fill="#38BDF8"/>
+    <circle cx="107" cy="115" r="4" fill="#38BDF8"/>
+    <path d="M44 30V39M66 30V39M88 30V39M110 30V39M44 135V144M66 135V144M88 135V144M110 135V144M22 55H31M22 79H31M22 103H31M22 127H31M127 55H136M127 79H136M127 103H136M127 127H136"/>
+  </g>
+  <text x="153" y="106" fill="#F6FAFF" font-family="DejaVu Sans,Arial,sans-serif" font-size="67" font-weight="800" letter-spacing="4">ESP</text>
+  <text x="302" y="106" fill="#38BDF8" font-family="DejaVu Sans,Arial,sans-serif" font-size="67" font-weight="800" letter-spacing="4">TRIX</text>
+  <text x="157" y="137" fill="#90A7BE" font-family="DejaVu Sans,Arial,sans-serif" font-size="16" letter-spacing="3">FLASH TOOL  /  LINUX + WINDOWS</text>
+</svg>
