@@ -10,6 +10,7 @@
 
 namespace esptrix {
 namespace {
+bool launchNativeHome = true;
 constexpr uint16_t BG = 0x0862;
 constexpr uint16_t CARD = 0x1905;
 constexpr uint16_t SELECTED = 0x24F1;
@@ -114,6 +115,9 @@ void drawPage(int selected) {
 }
 } // namespace
 
+bool nativeHomeEnabled() { return launchNativeHome; }
+void setNativeHomeEnabled(bool enabled) { launchNativeHome = enabled; }
+
 void showHome() {
     // Only installed on the T-Embed CC1101 menu, but keep the home screen
     // independent from radio settings and never start any transmit feature.
@@ -127,7 +131,10 @@ void showHome() {
 #endif
     uint32_t inputGuardUntil = millis() + 350;
     while (true) {
-        if (check(EscPress)) return;
+        if (check(EscPress)) {
+            launchNativeHome = false;
+            return;
+        }
         int delta = 0;
 #ifdef HAS_ENCODER
         int32_t steps = drainRotarySteps();
@@ -147,7 +154,10 @@ void showHome() {
             drawPage(selected);
         }
         if (check(SelPress) && static_cast<int32_t>(millis() - inputGuardUntil) >= 0) {
-            if (selected == 10) return; // Always allow access to the original Bruce home.
+            if (selected == 10) {
+                launchNativeHome = false;
+                return; // BRUCE tile: keep original UI until reboot or ESPTRIX HOME.
+            }
             items[selected].open();
             check(SelPress); check(EscPress);
 #ifdef HAS_ENCODER

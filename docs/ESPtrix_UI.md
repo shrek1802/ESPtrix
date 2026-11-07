@@ -1,28 +1,26 @@
-# ESPTRIX launcher — first native UI milestone
+# ESPTRIX launcher — T-Embed CC1101
 
-**Target:** LILYGO T-Embed CC1101, 320 × 170 in landscape.
+Development milestone: ESPTRIX is now the default **main menu** on the T-Embed CC1101, while all of Bruce's original tools remain reachable.
 
-This milestone adds an ESPTRIX HOME entry to the existing Bruce main menu on the T-Embed CC1101 only. Bruce's menu remains intact, including every existing application and settings screen.
+## Boot and recovery
 
-## Controls
+- On normal startup, after the existing Bruce boot animation, the ESPTRIX navy/electric-blue two-page launcher appears.
+- **Hold the physical BACK button when the device finishes booting and opens the main menu** to start with the original Bruce interface. Release it once the Bruce menu appears.
+- In ESPTRIX HOME, press BACK or select the **BRUCE** tile (page two) to switch to the original Bruce interface for the remainder of the session.
+- In Bruce's carousel menu, open **ESPTRIX HOME** (last menu item) to switch back.
+- Changing the menu is a runtime-only choice. On reboot it defaults back to ESPTRIX unless BACK is held at startup.
 
-- Turn rotary encoder: highlight the next/previous tile.
-- Press encoder: launch the highlighted tool.
-- Back button: leave ESPTRIX HOME for Bruce.
-- Select BRUCE: return to the original Bruce menu.
+## Navigation
 
-## Tiles
+- Rotate the encoder: move between tiles.
+- Press the encoder: open a tool.
+- BACK: switch to the original Bruce UI.
 
 Page 1: Key Fob, TPMS, RF Tools, Wi-Fi, BLE, NFC/RFID.
-
 Page 2: Infrared, Files, More, Settings, Bruce, About.
 
-Key Fob and TPMS tiles open frequency selectors, then the receive-only signal-strength monitors. **They do not yet perform packet decoding.** The About screen acknowledges Bruce Firmware, AGPL licensing and repository details.
+RF diagnostic screens remain **receive-only** and currently show RSSI signal trends, not real key code or TPMS packet decoding.
 
-## UI specifications
+## Testing status
 
-Dark navy background, electric-blue highlight, white labels, two-page 3×2 icon grid, battery indicator, clear encoder focus. This stage intentionally avoids replacing Bruce's core menu renderer, allowing safe incremental migration.
-
-## Status
-
-Implemented in development source; pending a successful target-board build and real hardware validation.
+The first ESPTRIX build (#20) showed a blank screen on physical hardware. Build #22 booted successfully, displaying the original Bruce UI, which is why the native launcher became the next milestone. This default-launcher change requires a **fresh firmware build and hardware validation**. If the home screen misbehaves, use BACK to enter Bruce or reflash the known-working Bruce firmware.

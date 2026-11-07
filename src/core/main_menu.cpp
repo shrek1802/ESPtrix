@@ -37,6 +37,22 @@ MainMenu::MainMenu() {
 MainMenu::~MainMenu() {}
 
 void MainMenu::begin(void) {
+#if defined(T_EMBED_1101)
+    // ESPTRIX is the default on the T-Embed CC1101. To recover the original
+    // Bruce menu, hold the physical BACK button during startup.
+    static bool firstEntry = true;
+    if (firstEntry) {
+        firstEntry = false;
+        if (digitalRead(BK_BTN) == BTN_ACT) {
+            esptrix::setNativeHomeEnabled(false);
+            Serial.println("[ESPTRIX] Boot recovery: Bruce menu selected");
+        }
+    }
+    if (esptrix::nativeHomeEnabled()) {
+        esptrix::showHome();
+        return;
+    }
+#endif
     returnToMenu = false;
     options = {};
 
@@ -67,10 +83,12 @@ void MainMenu::begin(void) {
             );
         }
     }
-    // ESPTRIX is opt-in during early hardware validation. Retain Bruce's
-    // verified default first item and icon renderer at initial startup.
+    // Keep this shortcut so Bruce mode can return to the ESPTRIX launcher.
 #if defined(T_EMBED_1101)
-    options.push_back({"ESPTRIX HOME", []() { esptrix::showHome(); }});
+    options.push_back({"ESPTRIX HOME", []() {
+        esptrix::setNativeHomeEnabled(true);
+        esptrix::showHome();
+    }});
 #endif
     _currentIndex = loopOptions(options, MENU_TYPE_MAIN, "Main Menu", _currentIndex);
 };
