@@ -4,6 +4,7 @@
 #include "esptrix_home.h"
 #include "esptrix_ui.h"
 #include "core/main_menu.h"
+#include "core/utils.h"
 #include <globals.h>
 #include <stdint.h>
 
