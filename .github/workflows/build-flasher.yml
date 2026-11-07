@@ -43,6 +43,14 @@ jobs:
         run: python -m unittest discover -s flasher/tests -v
       - name: Compile standalone GUI
         run: python -m PyInstaller --noconfirm --clean --onefile --windowed --collect-all esptool --collect-all serial --name ESPTRIX-Flasher flasher/app.py
+      - name: Smoke-test packaged esptool executable
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            dist/ESPTRIX-Flasher.exe --esptool-run version
+          else
+            dist/ESPTRIX-Flasher --esptool-run version
+          fi
       - name: Upload executable for download
         uses: actions/upload-artifact@v4
         with:
