@@ -49,7 +49,9 @@ static const uint8_t SCL = GROVE_SCL;
 #define PIN_POWER_ON 15
 
 // Font Sizes
-#define FP 1
+// Font 1 is a typed constant, not a macro: the macro FP collides with
+// the FastLED fixed-point template parameter (Bruce 1.16.1 / FastLED 3.10).
+enum { FP = 1 };
 #define FM 2
 #define FG 3
 
@@ -223,7 +225,9 @@ static const uint8_t SCL = GROVE_SCL;
 #define PIN_POWER_ON 46
 
 // Font Sizes#
-#define FP 1
+// Font 1 is a typed constant, not a macro: the macro FP collides with
+// the FastLED fixed-point template parameter (Bruce 1.16.1 / FastLED 3.10).
+enum { FP = 1 };
 #define FM 2
 #define FG 3
 
