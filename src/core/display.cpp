@@ -927,6 +927,17 @@ void drawStatusBar() {
         tft.drawLine(5, 25, tftWidth - 6, 25, bruceConfig.priColor);
     }
 
+#if defined(T_EMBED_1101)
+    // ESPTRIX V3 native status branding: keep Bruce's battery and connectivity icons.
+    // ESPTRIX V3 native status branding
+    tft.fillRect(11, 8, 51, 14, bruceConfig.bgColor);
+    tft.setTextSize(1);
+    tft.setTextFont(1);
+    tft.setTextColor(TFT_WHITE, bruceConfig.bgColor);
+    tft.drawString("ESP", 12, 10, 1);
+    tft.setTextColor(0x15DF, bruceConfig.bgColor);
+    tft.drawString("TRIX", 30, 10, 1);
+#else
     if (clock_set) {
         setTftDisplay(12, 12, bruceConfig.priColor, 1, bruceConfig.bgColor);
         tft.fillRect(12, 12, 60, LH, bruceConfig.bgColor);
@@ -940,6 +951,8 @@ void drawStatusBar() {
         setTftDisplay(12, 12, bruceConfig.priColor, 1, bruceConfig.bgColor);
         tft.print("BRUCE " + String(BRUCE_VERSION));
     }
+
+#endif
 
     int iconCount = 0;
     bool showSD = sdcardMounted;

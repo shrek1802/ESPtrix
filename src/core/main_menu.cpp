@@ -1,5 +1,14 @@
+// ESPTRIX V7 UNIFIED MENU - nine portable categories
+// ESPTRIX V6.1 FRONT MENU — Access Control Lab + grouped new tools
+// ESPTRIX V4 TEST LAB integration
+// ESPTRIX BRUCE-RENDERER RESET v1
 #include "main_menu.h"
-#include "esptrix/esptrix_home.h"
+#if defined(T_EMBED_1101)
+#include "esptrix/esptrix_bruce_icons.h"
+#include "esptrix/esptrix_access_control_icon.h"
+#include "esptrix/esptrix_unified_icons.h"
+#include "esptrix/esptrix_test_lab.h"
+#endif
 #include "display.h"
 #include "utils.h"
 #include <globals.h>
@@ -38,60 +47,70 @@ MainMenu::~MainMenu() {}
 
 void MainMenu::begin(void) {
 #if defined(T_EMBED_1101)
-    // ESPTRIX is the default on the T-Embed CC1101. To recover the original
-    // Bruce menu, hold the physical BACK button during startup.
-    static bool firstEntry = true;
-    if (firstEntry) {
-        firstEntry = false;
+    // BRUCE RECOVERY: hold the physical BACK key during the first menu entry.
+    static bool bootChoiceMade = false;
+    static bool useBruceRecoveryMenu = false;
+    if (!bootChoiceMade) {
+        bootChoiceMade = true;
         if (digitalRead(BK_BTN) == BTN_ACT) {
-            esptrix::setNativeHomeEnabled(false);
-            Serial.println("[ESPTRIX] Boot recovery: Bruce menu selected");
+            useBruceRecoveryMenu = true;
+            Serial.println("[ESPTRIX] BACK held: original Bruce menu recovery");
         }
-    }
-    if (esptrix::nativeHomeEnabled()) {
-        esptrix::showHome();
-        return;
     }
 #endif
     returnToMenu = false;
     options = {};
 
-    std::vector<String> l = bruceConfig.disabledMenus;
-    for (int i = 0; i < _totalItems; i++) {
-        String itemName = _menuItems[i]->getName();
-        if (find(l.begin(), l.end(), itemName) == l.end()) { // If menu item is not disabled
-            options.push_back(
-                {// selected lambda
-                 itemName,
-                 [this, i]() { _menuItems[i]->optionsMenu(); },
-                 false,                                  // selected = false
-                 [](void *menuItem, bool shouldRender) { // render lambda
-                     if (!shouldRender) return false;
-                     drawMainBorder(false);
-
-                     MenuItemInterface *obj = static_cast<MenuItemInterface *>(menuItem);
-                     float scale = float((float)tftWidth / (float)240);
-                     if (bruceConfigPins.rotation & 0b01) scale = float((float)tftHeight / (float)135);
-                     obj->draw(scale);
-#if defined(HAS_TOUCH)
-                     TouchFooter();
-#endif
-                     return true;
-                 },
-                 _menuItems[i]
-                }
-            );
-        }
-    }
-    // Keep this shortcut so Bruce mode can return to the ESPTRIX launcher.
 #if defined(T_EMBED_1101)
-    options.push_back({"ESPTRIX HOME", []() {
-        esptrix::setNativeHomeEnabled(true);
-        esptrix::showHome();
-    }});
+    // All categories use BRUCE'S icon renderer and navigation. We supply only
+    // the original icon bitmaps, names and action pointers, never a new layout.
+    // V7 categories are data: board-specific availability lives in the router.
+    static esptrix::UnifiedCategoryItem smartItem(esptrix::kUnifiedCategories[0]);
+    static esptrix::UnifiedCategoryItem automotiveItem(esptrix::kUnifiedCategories[1]);
+    static esptrix::UnifiedCategoryItem accessItem(esptrix::kUnifiedCategories[2]);
+    static esptrix::UnifiedCategoryItem rfItem(esptrix::kUnifiedCategories[3]);
+    static esptrix::UnifiedCategoryItem wifiItem(esptrix::kUnifiedCategories[4]);
+    static esptrix::UnifiedCategoryItem bluetoothItem(esptrix::kUnifiedCategories[5]);
+    static esptrix::UnifiedCategoryItem irUsbItem(esptrix::kUnifiedCategories[6]);
+    static esptrix::UnifiedCategoryItem filesItem(esptrix::kUnifiedCategories[7]);
+    static esptrix::UnifiedCategoryItem systemItem(esptrix::kUnifiedCategories[8]);
+    const std::vector<MenuItemInterface *> esptrixItems = {
+        &smartItem, &automotiveItem, &accessItem, &rfItem, &wifiItem,
+        &bluetoothItem, &irUsbItem, &filesItem, &systemItem
+    };
+    // Holding BACK during boot still selects the original Bruce menu.
+    const std::vector<MenuItemInterface *> &activeItems =
+        useBruceRecoveryMenu ? _menuItems : esptrixItems;
+#else
+    const std::vector<MenuItemInterface *> &activeItems = _menuItems;
 #endif
-    _currentIndex = loopOptions(options, MENU_TYPE_MAIN, "Main Menu", _currentIndex);
-};
+
+    const std::vector<String> disabled = bruceConfig.disabledMenus;
+    for (MenuItemInterface *item : activeItems) {
+        String itemName = item->getName();
+        if (find(disabled.begin(), disabled.end(), itemName) != disabled.end()) continue;
+        options.push_back({
+            itemName,
+            [item]() { item->optionsMenu(); },
+            false,
+            [](void *pointer, bool shouldRender) {
+                if (!shouldRender) return false;
+                drawMainBorder(false);
+                MenuItemInterface *obj = static_cast<MenuItemInterface *>(pointer);
+                float scale = float((float)tftWidth / (float)240);
+                if (bruceConfigPins.rotation & 0b01)
+                    scale = float((float)tftHeight / (float)135);
+                obj->draw(scale);  // Bruce's native layout, title, arrows and status bar
+#if defined(HAS_TOUCH)
+                TouchFooter();
+#endif
+                return true;
+            },
+            item
+        });
+    }
+    _currentIndex = loopOptions(options, MENU_TYPE_MAIN, "ESPTRIX", _currentIndex);
+}
 
 /*********************************************************************
 **  Function: hideAppsMenu

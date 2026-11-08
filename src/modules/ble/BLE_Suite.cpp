@@ -3937,7 +3937,7 @@ void BLE_Sniffer() {
                 std::string manufData = device->getManufacturerData();
                 packet.payload.assign(manufData.begin(), manufData.end());
                 packet.payloadHex = payloadToHex(packet.payload);
-                packet.channel = 37 + (i % 3);
+                packet.channel = 0;  // Advertising channel is not supplied by the BLE API
 
                 snifferPackets.push_back(packet);
                 snifferPacketCount++;
@@ -4049,7 +4049,7 @@ void BLE_Sniffer() {
                     dy += dlh;
                     tft.println("RSSI: " + String(pkt.rssi) + " dBm");
                     dy += dlh;
-                    tft.println("Channel: " + String(pkt.channel));
+                    tft.println("Channel: N/A (not reported)");
                     dy += dlh;
                     tft.println("Timestamp: " + pkt.timestamp + "s");
                     dy += dlh;
@@ -4105,12 +4105,11 @@ void BLE_Sniffer() {
                     for (size_t i = 0; i < snifferPackets.size(); i++) {
                         SnifferPacket &pkt = snifferPackets[i];
                         file.printf(
-                            "[%d] %s | %s | %d dBm | Ch:%d\n",
+                            "[%d] %s | %s | %d dBm | Ch:N/A\n",
                             i + 1,
                             pkt.name.c_str(),
                             pkt.address.c_str(),
-                            pkt.rssi,
-                            pkt.channel
+                            pkt.rssi
                         );
                         file.print("  Payload: ");
                         for (size_t j = 0; j < pkt.payload.size(); j++) {

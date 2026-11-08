@@ -1,4 +1,5 @@
 #include "core/main_menu.h"
+#include "esptrix/esptrix_boot.h"
 #include <globals.h>
 
 #include "core/bus_HAL.h"
@@ -279,6 +280,10 @@ void boot_screen() {
  **  Draw boot screen
  *********************************************************************/
 void boot_screen_anim() {
+#if defined(T_EMBED_1101)
+    // [ESPTRIX V8.2.2] skip legacy splash; the built-in logo played first.
+    return;
+#endif
     boot_screen();
     int i = millis();
     // checks for boot.jpg in SD and LittleFS for customization
@@ -498,6 +503,12 @@ void setup() {
     _pre_storage_gpio();
     Serial.println("[ESPTRIX BOOT] stage=begin_storage");
     begin_storage();
+    // ESPTRIX brand colours, T-Embed only (independent of stored Bruce theme).
+#if defined(T_EMBED_1101)
+    bruceConfig.bgColor = TFT_BLACK;
+    bruceConfig.priColor = 0x3DFF;
+    bruceConfig.secColor = 0xBDF7;
+#endif
     Serial.println("[ESPTRIX BOOT] stage=begin_storage_ok");
     RAM_LOG("after-storage"); // bruceConfig/bruceConfigPins loaded from FS
     Serial.println("[ESPTRIX BOOT] stage=begin_tft");
@@ -531,6 +542,11 @@ void setup() {
     // so re-apply the stored brightness after that stage completes.
     setBrightness(bruceConfig.bright, false);
     // end of post gpio begin
+#if defined(T_EMBED_1101)
+    // ESPTRIX V8.2.2: after final TFT/backlight setup, before input tasks.
+    Serial.println("[ESPTRIX BOOT V8.2.2] splash=called");
+    esptrix::playBootLogo();
+#endif
 
     // #ifndef USE_TFT_eSPI_TOUCH
     // This task keeps running all the time, will never stop
@@ -559,7 +575,19 @@ void setup() {
 #if defined(HAS_SCREEN)
     bruceConfig.openThemeFile(bruceConfig.themeFS(), bruceConfig.themePath, false);
     if (!bruceConfig.instantBoot) {
+#if defined(T_EMBED_1101)
+        // Small, readable splash using Bruce's already initialised ST7789.
+        tft.setTextSize(1);
+        tft.fillScreen(TFT_BLACK);
+        tft.setTextColor(TFT_WHITE, TFT_BLACK);
+        tft.drawCentreString("ESPTRIX", tftWidth / 2, 37, 4);
+        tft.setTextColor(0x3DFF, TFT_BLACK);
+        tft.drawCentreString("DEVELOPMENT", tftWidth / 2, 87, 2);
+        tft.drawFastHLine(55, 115, tftWidth - 110, 0x3DFF);
+        delay(950);
+#else
         boot_screen_anim();
+#endif
         startup_sound();
     }
     if (bruceConfig.wifiAtStartup) {
