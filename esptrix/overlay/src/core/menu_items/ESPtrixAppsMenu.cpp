@@ -2,6 +2,7 @@
 // Copyright (C) 2026 ESPTRIX contributors. AGPL-3.0-or-later
 #include "ESPtrixAppsMenu.h"
 #include "core/display.h"
+#include "core/utils.h"
 // The public repository has the early RF Lab only. Local ESPTRIX V8 builds
 // additionally expose the unified category dispatcher.
 #if __has_include("esptrix/esptrix_unified_menu.h")
