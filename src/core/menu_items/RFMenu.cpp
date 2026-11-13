@@ -1,5 +1,4 @@
 #include "RFMenu.h"
-#include "esptrix/esptrix_ui.h"
 #include "core/display.h"
 #include "core/settings.h"
 #include "core/utils.h"
@@ -15,7 +14,6 @@
 
 void RFMenu::optionsMenu() {
     options = {
-        {"ESPtrix RF Lab", []() { esptrix::rfLabMenu(); }},
         {"Scan/copy",       [=]() { RFScan(); }       },
 #if !defined(LITE_VERSION)
         {"Record RAW",      rf_raw_record             }, // Pablo-Ortiz-Lopez
