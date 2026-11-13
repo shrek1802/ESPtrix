@@ -27,6 +27,7 @@ MainMenu::MainMenu() {
 #endif
         &clockMenu,
         &othersMenu,
+        &esptrixAppsMenu,
         &configMenu,
     };
 
