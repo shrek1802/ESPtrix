@@ -316,7 +316,7 @@ bool readTag(TagReading &out){
     line(39,"Status","Present test tag",CYAN);
     PN532 reader(PN532::I2C);
     bool ready=reader.begin();
-    if(!ready){releaseI2CBus();displayError("PN532 not ready",true);return false;}
+    if(!ready){displayError("PN532 not ready",true);return false;}
     // Use driver-provided passive identification; never request protected sectors.
     // Reader returns a Type-A UID with ATQA/SAK metadata.
     bool ok=reader.nfc.startPassiveTargetIDDetection(PN532_MIFARE_ISO14443A);
@@ -330,7 +330,7 @@ bool readTag(TagReading &out){
         }
         out.sak=u.sak;out.atqa0=u.atqaByte[0];out.atqa1=u.atqaByte[1];out.valid=true;
     }
-    releaseI2CBus();
+    // PN532 owns the I2CLease; its destructor releases the bus.
     if(!ok){info("No ISO14443-A tag detected");return false;}
     screen("NFC CARD INSPECTOR","IDENTITY ONLY");
     line(29,"UID",out.uid,CYAN);
