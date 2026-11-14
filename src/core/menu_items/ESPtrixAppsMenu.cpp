@@ -22,9 +22,6 @@ void ESPtrixAppsMenu::optionsMenu() {
         {"RF & Sub-GHz Tools", []() { esptrix::openUnifiedCategory(esptrix::CategoryId::SubGhz); }},
         {"Wi-Fi Tools", []() { esptrix::openUnifiedCategory(esptrix::CategoryId::WifiNetwork); }},
         {"BLE Tools", []() { esptrix::openUnifiedCategory(esptrix::CategoryId::Bluetooth); }},
-        {"Infrared & USB", []() { esptrix::openUnifiedCategory(esptrix::CategoryId::IrUsb); }},
-        {"Files & Reports", []() { esptrix::openUnifiedCategory(esptrix::CategoryId::FilesReports); }},
-        {"ESPTRIX System", []() { esptrix::openUnifiedCategory(esptrix::CategoryId::System); }},
 #else
         // Early public-source fallback until local V8 modules are migrated.
         {"RF Lab", []() { esptrix::rfLabMenu(); }},
