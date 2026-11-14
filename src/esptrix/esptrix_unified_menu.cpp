@@ -138,6 +138,7 @@ void smartTest() {
         {"SD Card Check", v7SdCardCheck},
         {"Acoustic Frequency Analyser", v8AcousticSpectrum},
         {"Hardware Capabilities", showCapabilities},
+        {"ESPTRIX Information", showAbout},
         {"Test Selection Guide", testGuide},
     });
 }
