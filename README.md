@@ -2,17 +2,17 @@
 
 **Advanced wireless and security toolkit for ESP32 devices**
 
-> **Status: early development.** The first target is the **LILYGO T-Embed CC1101**. Do not flash an unverified build to hardware.
+> **Status: Bruce 1.17 + ESPTRIX integration candidate (RC1).** First target: **LILYGO T-Embed CC1101**. This branch is for testing; validate device behaviour before relying on it.
 
 ## Built from Bruce
 
-**ESPTRIX is an independent fork/derivative of [Bruce Firmware](https://github.com/BruceDevices/firmware), based on the [Bruce 1.16.1 release](https://github.com/BruceDevices/firmware/releases/tag/1.16.1).** Bruce and its contributors created the underlying firmware. ESPTRIX is **not** an official BruceDevices release or endorsed by BruceDevices.
+**ESPTRIX is an independent fork/derivative of [Bruce Firmware](https://github.com/BruceDevices/firmware), now integrating the [Bruce 1.17 release](https://github.com/BruceDevices/firmware/releases/tag/1.17).** Bruce and its contributors created the underlying firmware. ESPTRIX is **not** an official BruceDevices release or endorsed by BruceDevices.
 
 We intend to retain Bruce's existing features while adding a more polished black/electric-blue UI and focused tools for signal analysis, device diagnostics and authorised security testing.
 
 ## Planned ESPTRIX features
 
-- New home menu, status bar, rotary navigation, favourites and consistent application layouts
+- Original Bruce 1.17 home menu retained, with one ESPTRIX Apps drawer for six custom tool categories
 - **Key Fob Tester:** passive, multi-band RF activity indication; later real pulse decoding, signal comparisons and saved measurements
 - **TPMS Monitor:** initial passive 315/433 MHz activity monitor; pressure, temperature, IDs and fault flags only once compatible sensor decoders are implemented
 - RF history, signal comparison, exports and device profiles
@@ -23,10 +23,11 @@ We intend to retain Bruce's existing features while adding a more polished black
 
 ## Development
 
-The repository is bootstrapped from the **Bruce 1.16.1 source tag**, not its latest moving branch. See [docs/UPSTREAM.md](docs/UPSTREAM.md) for origin, attribution and the import procedure.
+The original repository was bootstrapped from **Bruce 1.16.1**. This release-candidate branch integrates the pinned **Bruce 1.17** source, not its latest moving branch. See [docs/UPSTREAM.md](docs/UPSTREAM.md) for origin, attribution and the import procedure.
 
 - `main`: stable integration baseline
 - `development`: ongoing firmware and UI work
+- `release/esptrix-bruce117-clean-rc1`: Bruce 1.17 + six-category ESPTRIX Apps integration candidate
 - PlatformIO build environment: `lilygo-t-embed-cc1101`
 
 Once the source import completes, build on Ubuntu with:
