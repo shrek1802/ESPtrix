@@ -331,7 +331,6 @@ void saveReport() {
     awaitExit();
 }
 
-void originalTools() { mainMenu.rfidMenu.optionsMenu(); }
 } // namespace
 
 void accessControlLabMenu() {
@@ -342,7 +341,6 @@ void accessControlLabMenu() {
         {"MIFARE Classic Diagnostics", mifareDiagnostics},
         {"Compare Test Credentials", referenceMenu},
         {"Save Last Scan to SD", saveReport},
-        {"Original NFC / RFID Tools", originalTools},
         {"Back", []() {}}
     };
     while (true) {

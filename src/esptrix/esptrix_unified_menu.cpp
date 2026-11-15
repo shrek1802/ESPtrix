@@ -138,6 +138,7 @@ void smartTest() {
         {"SD Card Check", v7SdCardCheck},
         {"Acoustic Frequency Analyser", v8AcousticSpectrum},
         {"Hardware Capabilities", showCapabilities},
+        {"ESPTRIX Information", showAbout},
         {"Test Selection Guide", testGuide},
     });
 }
@@ -152,20 +153,12 @@ void automotive() {
 void accessControl() {
     runMenu("ACCESS CONTROL LAB", {
         {"Chameleon Ultra Lab", accessControlLabMenu},
-        {"Onboard NFC Reader", []() { TagOMatic(); }},
         {"NFC Card Inspector", v8NfcInspector},
     });
 }
 void subGhz() {
     if (!hasCc1101()) { noRadio(); return; }
     runMenu("SUB-GHZ & RF", {
-        {"Signal Scan / Capture", runRfScan},
-#ifndef LITE_VERSION
-        {"RAW Recording", runRfRaw},
-#endif
-        {"RF Spectrum", runRfSpectrum},
-        {"RSSI Spectrum", runRfRssi},
-        {"RF Waterfall", runRfWaterfall},
         {"RF Band Survey", v7RfSurvey},
         {"RF Pulse Scope", v8PulseScope},
         {"RF Interference Finder", v8InterferenceFinder},
@@ -180,23 +173,12 @@ void wifiNetwork() {
         {"Channel Congestion", v7WifiChannelSurvey},
         {"Save Survey to SD", v7WifiSaveReport},
         {"Wi-Fi Signal Walk Test", v8WifiWalkSurvey},
-        {"Connect to Wi-Fi", runWifiConnect},
-#ifndef LITE_VERSION
-        {"Channel Analyzer", channel_analyzer_setup},
-#endif
         {"Router Service Check", v7RouterServiceCheck},
     });
 }
 void bluetooth() {
     runMenu("BLUETOOTH", {
-        {"BLE Device Scanner", ble_scan},
         {"BLE Device Locator", v8BleLocator},
-        {"Original Bruce BLE Tools", []() { mainMenu.bleMenu.optionsMenu(); }},
-#if defined(LITE_VERSION)
-        {"BLE Adverts (Snapshot)", BLE_SnifferMenu},
-#else
-        {"BLE Adverts (Snapshot)", BLE_Sniffer},
-#endif
     });
 }
 void infraredUsb() {
