@@ -7,9 +7,11 @@
  */
 
 #include "RFIDInterface.h"
+#include "core/bus_HAL.h"
 #include <MFRC522Driver.h>
 #include <MFRC522DriverPinSimple.h>
 #include <MFRC522v2.h>
+#include <Wire.h>
 
 class RFID2 : public RFIDInterface {
 public:
@@ -39,8 +41,9 @@ public:
 
 private:
     bool _use_i2c;
-    MFRC522Driver *_driver;
-    MFRC522DriverPinSimple ss_pin = MFRC522DriverPinSimple(SPI_SS_PIN);
+    I2CLease _i2cLease; // whichever bus (sys_i2c or i2c_bus) the module answered on
+    MFRC522Driver *_driver = nullptr;
+    MFRC522DriverPinSimple ss_pin; // initialized from bruceConfigPins.PN532_bus.cs, see RFID2.cpp
 
     /////////////////////////////////////////////////////////////////////////////////////
     // Converters

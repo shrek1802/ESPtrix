@@ -7,40 +7,147 @@
  */
 
 #include "RFID2.h"
+#include "core/bus_HAL.h"
 #include "core/display.h"
 #include "core/i2c_finder.h"
 #include "core/sd_functions.h"
-#include <MFRC522DriverI2C.h>
 #include <MFRC522DriverSPI.h>
 #include <MFRC522Hack.h>
 #include <algorithm>
 
 #define RFID2_I2C_ADDRESS 0x28
+#define WS1850S_VERSION 0x15
 
-RFID2::RFID2(bool use_i2c) : _use_i2c(use_i2c) {
-    if (use_i2c)
-        _driver =
-            new MFRC522DriverI2C{RFID2_I2C_ADDRESS, bruceConfigPins.i2c_bus.sda, bruceConfigPins.i2c_bus.scl};
-    else _driver = new MFRC522DriverSPI{ss_pin, SPI_SCK_PIN, SPI_MISO_PIN, SPI_MOSI_PIN};
-    mfrc522.SetDriver(*_driver);
+namespace {
+class BruceMFRC522DriverI2C : public MFRC522Driver {
+public:
+    BruceMFRC522DriverI2C(const byte slaveAdr, TwoWire &wire) : _slaveAdr(slaveAdr), _wire(wire) {}
+
+    bool init() override { return true; }
+
+    void PCD_WriteRegister(const PCD_Register reg, const byte value) override {
+        _wire.beginTransmission(_slaveAdr);
+        _wire.write(i2cRegisterAddress(reg));
+        _wire.write(value);
+        _wire.endTransmission();
+    }
+
+    void PCD_WriteRegister(const PCD_Register reg, const byte count, byte *const values) override {
+        _wire.beginTransmission(_slaveAdr);
+        _wire.write(i2cRegisterAddress(reg));
+        _wire.write(values, count);
+        _wire.endTransmission();
+    }
+
+    byte PCD_ReadRegister(const PCD_Register reg) override {
+        _wire.beginTransmission(_slaveAdr);
+        _wire.write(i2cRegisterAddress(reg));
+        _wire.endTransmission();
+
+        if (_wire.requestFrom(_slaveAdr, (uint8_t)1) != 1) return 0xFF;
+        return (uint8_t)_wire.read();
+    }
+
+    void PCD_ReadRegister(
+        const PCD_Register reg, const byte count, byte *const values, const byte rxAlign = 0
+    ) override {
+        if (count == 0 || values == nullptr) return;
+
+        _wire.beginTransmission(_slaveAdr);
+        _wire.write(i2cRegisterAddress(reg));
+        _wire.endTransmission();
+        _wire.requestFrom(_slaveAdr, count);
+
+        byte index = 0;
+        while (_wire.available() && index < count) {
+            byte value = (byte)_wire.read();
+            if (index == 0 && rxAlign) {
+                byte mask = 0;
+                for (byte i = rxAlign; i <= 7; i++) mask |= (1 << i);
+                values[0] = (values[index] & ~mask) | (value & mask);
+            } else {
+                values[index] = value;
+            }
+            index++;
+        }
+    }
+
+private:
+    static byte i2cRegisterAddress(const PCD_Register reg) { return (byte)reg; }
+
+    const byte _slaveAdr;
+    TwoWire &_wire;
+};
+} // namespace
+
+// The address ACK alone could be another chip at 0x28 on the other bus: require a VersionReg value
+// the MFRC522 family actually reports (WS1850S on M5 RFID2, NXP v0/v1/v2, common clones).
+static bool verifyMfrc522(TwoWire &wire, uint8_t addr) {
+    wire.beginTransmission(addr);
+    wire.write((uint8_t)MFRC522::PCD_Register::VersionReg);
+    if (wire.endTransmission(false) != 0) return false;
+    if (wire.requestFrom(addr, (size_t)1) != 1) return false;
+    switch (wire.read()) {
+        case WS1850S_VERSION:
+        case 0x12: // counterfeit
+        case 0x88: // FM17522 clone
+        case 0x90:
+        case 0x91:
+        case 0x92:
+        case 0xB2: // FM17522
+            return true;
+        default: return false;
+    }
 }
 
-RFID2::~RFID2() { delete _driver; }
+RFID2::RFID2(bool use_i2c)
+    : _use_i2c(use_i2c), ss_pin((uint8_t)bruceConfigPins.PN532_bus.cs) {
+    if (use_i2c) {
+        I2CDeviceQuery query{RFID2_I2C_ADDRESS};
+        query.verify = verifyMfrc522;
+        _i2cLease = i2cLeaseDevice(query);
+        if (_i2cLease) _driver = new BruceMFRC522DriverI2C{RFID2_I2C_ADDRESS, *_i2cLease.wire()};
+    } else {
+        _driver = new MFRC522DriverSPI{
+            ss_pin,
+            (int8_t)bruceConfigPins.PN532_bus.sck,
+            (int8_t)bruceConfigPins.PN532_bus.miso,
+            (int8_t)bruceConfigPins.PN532_bus.mosi
+        };
+    }
+    if (_driver != nullptr) mfrc522.SetDriver(*_driver);
+}
+
+RFID2::~RFID2() {
+    delete _driver; // before the lease (a member) releases the bus it talks through
+}
 
 bool RFID2::begin() {
-    bool i2c_check = check_i2c_address(RFID2_I2C_ADDRESS);
+    bool i2c_check = false;
+    if (_use_i2c && _i2cLease) i2c_check = i2cProbe(_i2cLease, RFID2_I2C_ADDRESS);
 
-    mfrc522.PCD_Init();
+    if (_driver == nullptr) return false;
 
+    bool init_ok = mfrc522.PCD_Init();
+    if (_use_i2c) mfrc522.PCD_SetAntennaGain(MFRC522::PCD_RxGain::RxGain_max);
+    byte raw_version = _driver->PCD_ReadRegister(MFRC522::PCD_Register::VersionReg);
     MFRC522::PCD_Version version = mfrc522.PCD_GetVersion();
 
-    return i2c_check || version != MFRC522::PCD_Version::Version_Unknown;
+    if (_use_i2c) {
+        return i2c_check && (raw_version == WS1850S_VERSION ||
+                             (init_ok && version != MFRC522::PCD_Version::Version_Unknown));
+    }
+    return init_ok && version != MFRC522::PCD_Version::Version_Unknown;
 }
 
 bool RFID2::PICC_IsNewCardPresent() {
     byte bufferATQA[2];
     byte bufferSize = sizeof(bufferATQA);
     byte result = mfrc522.PICC_RequestA(bufferATQA, &bufferSize);
+    if (result != MFRC522::StatusCode::STATUS_OK && result != MFRC522::StatusCode::STATUS_COLLISION) {
+        bufferSize = sizeof(bufferATQA);
+        result = mfrc522.PICC_WakeupA(bufferATQA, &bufferSize);
+    }
     bool bl_result =
         (result == MFRC522::StatusCode::STATUS_OK || result == MFRC522::StatusCode::STATUS_COLLISION);
     if (bl_result) {
@@ -60,9 +167,17 @@ int RFID2::read(int cardBaudRate) {
 
     if (!PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial()) return TAG_NOT_PRESENT;
 
-    displayInfo("Reading data blocks...");
-    pageReadStatus = read_data_blocks();
-    pageReadSuccess = pageReadStatus == SUCCESS;
+    byte piccType = mfrc522.PICC_GetType(mfrc522.uid.sak);
+    if (piccType == MFRC522::PICC_Type::PICC_TYPE_ISO_14443_4) {
+        pageReadStatus = NOT_IMPLEMENTED;
+        pageReadSuccess = false;
+        mfrc522.PICC_HaltA();
+        return NOT_IMPLEMENTED;
+    } else {
+        displayInfo("Reading data blocks...");
+        pageReadStatus = read_data_blocks();
+        pageReadSuccess = pageReadStatus == SUCCESS;
+    }
     format_data();
     set_uid();
     return SUCCESS;

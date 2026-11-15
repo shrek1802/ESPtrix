@@ -5,4 +5,8 @@
 
 namespace esptrix {
 void rfLabMenu();
+void keyFobMenu();
+void tpmsMenu();
+void keyFobMonitor(float frequencyMHz);
+void tpmsMonitor(float frequencyMHz);
 }
